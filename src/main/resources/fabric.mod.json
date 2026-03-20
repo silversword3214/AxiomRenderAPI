@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "axiomrenderapi",
+  "version": "${version}",
+  "name": "AxiomRenderAPI",
+  "description": "Minecraft Fabric 1.21.11 rendering API for my ProjectAxiom -client",
+  "authors": [],
+  "contact": {},
+  "license": "Apache-2.0",
+  "icon": "assets/axiomrenderapi/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-datagen": [
+      "com.silversword3214.axiomrenderapi.client.AxiomRenderAPIDataGenerator"
+    ],
+    "client": [
+      "com.silversword3214.axiomrenderapi.client.AxiomRenderAPIClient"
+    ],
+    "main": [
+      "com.silversword3214.axiomrenderapi.AxiomRenderAPI"
+    ]
+  },
+  "mixins": [
+    "axiomrenderapi.mixins.json",
+    {
+      "config": "axiomrenderapi.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
