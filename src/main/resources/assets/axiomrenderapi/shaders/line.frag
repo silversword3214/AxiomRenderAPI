@@ -1,8 +1,8 @@
-#version 150
+#version 330 core
 
-in vec4 fragColor;
-out vec4 outColor;
+in vec4 vertexColor;
+out vec4 fragColor;
 
 void main() {
-    outColor = fragColor;
+    fragColor = vertexColor;
 }

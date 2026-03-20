@@ -7,23 +7,17 @@
   "authors": [],
   "contact": {},
   "license": "Apache-2.0",
-  "icon": "assets/axiomrenderapi/icon.png",
   "environment": "client",
   "entrypoints": {
-    "fabric-datagen": [
-      "com.silversword3214.axiomrenderapi.client.AxiomRenderAPIDataGenerator"
-    ],
+
     "client": [
-      "com.silversword3214.axiomrenderapi.client.AxiomRenderAPIClient"
-    ],
-    "main": [
-      "com.silversword3214.axiomrenderapi.AxiomRenderAPI"
+      "com.silversword3214.axiomrenderapi.AxiomMod"
     ]
   },
   "mixins": [
-    "axiomrenderapi.mixins.json",
+    "axiomrenderapi.client.mixins.json",
     {
-      "config": "axiomrenderapi.client.mixins.json",
+      "config": "axiomrenderapi.mixins.json",
       "environment": "client"
     }
   ],
