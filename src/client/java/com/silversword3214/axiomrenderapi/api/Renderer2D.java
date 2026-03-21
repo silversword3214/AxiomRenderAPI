@@ -25,15 +25,4 @@ public class Renderer2D {
         core.addColoredQuad(model, projection, x, y, x + w, y + h, color);
     }
 
-    public void roundedRect(float x, float y, float w, float h, float radius, int color) {
-        Matrix3x2fStack pose = graphics.pose();
-        Matrix4f model = MatrixUtil.toMatrix4f(pose, 0);
-        core.addRoundedRect(model, projection, x, y, x + w, y + h, radius, color);
-    }
-
-    public void line(float x1, float y1, float x2, float y2, float thickness, int color) {
-        Matrix3x2fStack pose = graphics.pose();
-        Matrix4f model = MatrixUtil.toMatrix4f(pose, 0);
-        core.addLine2D(model, projection, x1, y1, x2, y2, thickness, color);
-    }
 }

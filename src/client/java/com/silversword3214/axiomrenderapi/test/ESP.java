@@ -1,6 +1,6 @@
 package com.silversword3214.axiomrenderapi.test;
 
-import com.silversword3214.axiomrenderapi.RenderAPI;
+import com.silversword3214.axiomrenderapi.api.Renderer3D;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.AABB;
@@ -25,7 +25,7 @@ public class ESP {
         return enabled;
     }
 
-    public void render() {
+    public void render(Renderer3D renderer, float tickDelta) {
         if (!enabled) return;
 
         Minecraft mc = Minecraft.getInstance();
@@ -34,14 +34,24 @@ public class ESP {
         List<LivingEntity> entities = mc.level.getEntitiesOfClass(LivingEntity.class,
                 mc.player.getBoundingBox().inflate(50.0));
 
-        RenderAPI api = RenderAPI.getInstance();
-
         for (LivingEntity entity : entities) {
             if (entity == mc.player) continue;
 
-            AABB box = entity.getBoundingBox();
-            api.world().box((float) box.minX, (float) box.minY, (float) box.minZ,
-                    (float) box.maxX, (float) box.maxY, (float) box.maxZ,
+            // Interpolate position
+            double x = entity.xOld + (entity.getX() - entity.xOld) * tickDelta;
+            double y = entity.yOld + (entity.getY() - entity.yOld) * tickDelta;
+            double z = entity.zOld + (entity.getZ() - entity.zOld) * tickDelta;
+
+            double width = entity.getBbWidth();
+            double height = entity.getBbHeight();
+            double halfWidth = width / 2.0;
+
+            renderer.box((float) (x - halfWidth),
+                    (float) y,
+                    (float) (z - halfWidth),
+                    (float) (x + halfWidth),
+                    (float) (y + height),
+                    (float) (z + halfWidth),
                     0xCCFFFFFF);
         }
     }
