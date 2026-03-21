@@ -19,10 +19,5 @@ public class Renderer2D {
         this.projection = new Matrix4f().setOrtho(0, width, height, 0, -1000, 1000);
     }
 
-    public void rect(float x, float y, float w, float h, int color) {
-        Matrix3x2fStack pose = graphics.pose();
-        Matrix4f model = MatrixUtil.toMatrix4f(pose, 0);
-        core.addColoredQuad(model, projection, x, y, x + w, y + h, color);
-    }
 
 }

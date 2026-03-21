@@ -12,7 +12,7 @@ base {
 
 loom {
 
-    accessWidenerPath = file("src/main/resources/axiomrenderapi.classTweaker")
+    accessWidenerPath = file("src/main/resources/axiomrenderapi.accessWidener")
 
     splitEnvironmentSourceSets()
     mods {
@@ -69,14 +69,24 @@ jar {
     }
 }
 
+
+
+
 publishing {
     publications {
-        create("mavenJava", MavenPublication) {
-            artifactId = project.archives_base_name
+        mavenJava(MavenPublication) {
             from components.java
+            // Include sources JAR
+            artifact sourcesJar
+            // Include mod metadata (if needed)
+            // artifact remapJar   // already included
         }
     }
     repositories {
-        // Add maven repositories for publishing here
+        // Choose your repository (examples below)
+        maven {
+            name = "local"   // local file repository
+            url = "file://${project.projectDir}/repo"
+        }
     }
 }

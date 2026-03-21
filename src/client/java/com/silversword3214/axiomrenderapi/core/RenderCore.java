@@ -7,6 +7,7 @@ import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MappableRingBuffer;
 import net.minecraft.client.renderer.rendertype.RenderType;
@@ -49,11 +50,9 @@ public class RenderCore {
     }
 
     public void flush() {
-        LOGGER.info("flush: batches.size() = {}", batches.size());
         for (Map.Entry<RenderPipeline, Batch> entry : batches.entrySet()) {
             RenderPipeline pipeline = entry.getKey();
             Batch batch = entry.getValue();
-            LOGGER.info("Flushing batch for pipeline {} with {} vertices", pipeline.getLocation(), batch.vertexCount());
             drawBatch(pipeline, batch);
         }
         batches.clear();
@@ -161,14 +160,32 @@ public class RenderCore {
         float b = (color & 0xFF) / 255f;
         float a = ((color >> 24) & 0xFF) / 255f;
 
-        // Position + color (7 floats total)
+        // Position + color
         batch.vertex((float)x1, (float)y1, (float)z1, r, g, b, a);
         batch.vertex((float)x2, (float)y2, (float)z2, r, g, b, a);
     }
 
-    public void addColoredQuad(Matrix4f model, Matrix4f projection, float x1, float y1, float x2, float y2, int color) {
-        // For quads, you'd use the quad pipeline and probably transform coordinates
-        // This is a placeholder; you'd implement similar logic
+
+    public void addQuad(double x1, double y1, double z1,
+                        double x2, double y2, double z2,
+                        double x3, double y3, double z3,
+                        double x4, double y4, double z4,
+                        int color) {
+        if (quadPipeline == null) return;
+
+        Batch batch = batches.computeIfAbsent(quadPipeline, k -> new Batch(AxiomVertexFormats.POS3_COLOR, VertexFormat.Mode.TRIANGLES));
+        float r = ((color >> 16) & 0xFF) / 255f;
+        float g = ((color >> 8) & 0xFF) / 255f;
+        float b = (color & 0xFF) / 255f;
+        float a = ((color >> 24) & 0xFF) / 255f;
+
+        // Split quad into two triangles
+        batch.vertex((float)x1, (float)y1, (float)z1, r, g, b, a);
+        batch.vertex((float)x2, (float)y2, (float)z2, r, g, b, a);
+        batch.vertex((float)x3, (float)y3, (float)z3, r, g, b, a);
+        batch.vertex((float)x1, (float)y1, (float)z1, r, g, b, a);
+        batch.vertex((float)x3, (float)y3, (float)z3, r, g, b, a);
+        batch.vertex((float)x4, (float)y4, (float)z4, r, g, b, a);
     }
 
     public void close() {

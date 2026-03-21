@@ -4,7 +4,9 @@
   "package": "com.silversword3214.axiomrenderapi.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-      "GameRendererMixin"
+    "GameRendererMixin",
+    "LineSmoothingMixin",
+    "ApplyLineSmoothingMixin"
   ],
   "injectors": {
     "defaultRequire": 1

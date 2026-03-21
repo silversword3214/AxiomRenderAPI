@@ -40,6 +40,7 @@ public final class RenderPipelines {
     public static RenderPipeline UI_COLORED_LINES;
     public static RenderPipeline UI_TEXTURED;
     public static RenderPipeline UI_TEXT;
+    public static RenderPipeline SHADER_OUTLINE;
 
     private static final List<PipelineBuilder> BUILDERS = new ArrayList<>();
 
@@ -57,6 +58,7 @@ public final class RenderPipelines {
 
         // 2. World lines (no depth)
         BUILDERS.add(new PipelineBuilder(DYNAMIC_TRANSFORMS)
+                .withLineSmooth()
                 .withLocation(id("pipeline/world_colored_lines"))
                 .withVertexFormat(AxiomVertexFormats.POS3_COLOR, VertexFormat.Mode.DEBUG_LINES)
                 .withVertexShader(id("shaders/world_colored.vert"))
@@ -134,6 +136,20 @@ public final class RenderPipelines {
                 .withBlend(BlendFunction.TRANSLUCENT)
                 .withCull(false));
 
+        // 9. Shader outline
+        BUILDERS.add(new PipelineBuilder()
+                .withLocation(id("pipeline/shader_outline"))
+                .withVertexFormat(AxiomVertexFormats.POS2_UV_COLOR, VertexFormat.Mode.TRIANGLES)
+                .withVertexShader(id("shaders/post/outline.vert"))
+                .withFragmentShader(id("shaders/post/outline.frag"))
+                .withSampler("u_Scene")      // original scene
+                .withSampler("u_ID")         // entity ID texture
+                .withUniform("OutlineData", UniformType.UNIFORM_BUFFER)  // thickness, glow strength, colors
+                .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+                .withDepthWrite(false)
+                .withBlend(BlendFunction.TRANSLUCENT)
+                .withCull(false));
+
         rebuildAll();
     }
 
@@ -175,6 +191,7 @@ public final class RenderPipelines {
                 case 5 -> UI_COLORED_LINES = pipeline;
                 case 6 -> UI_TEXTURED = pipeline;
                 case 7 -> UI_TEXT = pipeline;
+                case 8 -> SHADER_OUTLINE = pipeline;
             }
             index++;
             LOGGER.info("Rebuilt pipeline: {}", pipeline.getLocation());

@@ -5,6 +5,7 @@ import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.platform.DepthTestFunction;
 import com.mojang.blaze3d.shaders.UniformType;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.silversword3214.axiomrenderapi.mixininterface.ILineSmoothing;
 import net.minecraft.resources.Identifier;
 
 
@@ -32,15 +33,12 @@ public class PipelineBuilder {
 
     public PipelineBuilder(RenderPipeline.Snippet... snippets) {
         try {
-            // 1. Haetaan Builder-luokka
             Class<?> builderClass = Class.forName("com.mojang.blaze3d.pipeline.RenderPipeline$Builder");
 
-            // 2. Haetaan konstruktori (oletuksena parametriton, package-private)
             Constructor<?> constructor = builderClass.getDeclaredConstructor();
             constructor.setAccessible(true);
             this.innerBuilder = constructor.newInstance();
 
-            // 3. Haetaan kaikki tarvittavat metodit
             withSnippetMethod = builderClass.getDeclaredMethod("withSnippet", RenderPipeline.Snippet.class);
             withLocationMethod = builderClass.getDeclaredMethod("withLocation", Identifier.class);
             withVertexFormatMethod = builderClass.getDeclaredMethod("withVertexFormat", VertexFormat.class, VertexFormat.Mode.class);
@@ -176,6 +174,7 @@ public class PipelineBuilder {
     public RenderPipeline build() {
         try {
             RenderPipeline pipeline = (RenderPipeline) buildMethod.invoke(innerBuilder);
+            ((ILineSmoothing) pipeline).axiom_setLineSmooth(lineSmooth);
             return pipeline;
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);

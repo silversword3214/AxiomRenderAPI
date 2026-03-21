@@ -1,4 +1,4 @@
-classTweaker v1 named
+accessWidener v2 named
 
 #
 accessible method net/minecraft/client/renderer/rendertype/RenderType <init> (Ljava/lang/String;Lnet/minecraft/client/renderer/rendertype/RenderSetup;)V

@@ -1,6 +1,8 @@
 package com.silversword3214.axiomrenderapi.test;
 
 import com.silversword3214.axiomrenderapi.api.Renderer3D;
+import com.silversword3214.axiomrenderapi.utils.ShapeModeEnum;
+import com.silversword3214.axiomrenderapi.utils.color.Color;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.AABB;
@@ -46,13 +48,12 @@ public class ESP {
             double height = entity.getBbHeight();
             double halfWidth = width / 2.0;
 
-            renderer.box((float) (x - halfWidth),
-                    (float) y,
-                    (float) (z - halfWidth),
-                    (float) (x + halfWidth),
-                    (float) (y + height),
-                    (float) (z + halfWidth),
-                    0xCCFFFFFF);
+            // inside render method
+            Color outlineColor = new Color(0, 255, 0, 204);
+            Color fillColor = new Color(255, 0, 0, 48);
+            renderer.drawBox(x - halfWidth, y, z - halfWidth,
+                    x + halfWidth, y + height, z + halfWidth,
+                    fillColor, outlineColor, ShapeModeEnum.BOTH, 0);
         }
     }
 }
