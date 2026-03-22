@@ -24,5 +24,8 @@ public class Batch {
         vertices.add(new float[]{x, y, z, r, g, b, a});
     }
 
-    // For other formats, you'd add overloads
+    public void vertex2D(float x, float y, float r, float g, float b, float a) {
+        vertices.add(new float[]{x, y, 0f, r, g, b, a});
+    }
+
 }

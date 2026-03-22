@@ -3,11 +3,15 @@ package com.silversword3214.axiomrenderapi.utils;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
-import org.joml.Vector3d;
 import org.joml.Vector4f;
+
+
+
+
 
 public class RenderUtils {
 
@@ -46,5 +50,18 @@ public class RenderUtils {
         Vector4f center4 = new Vector4f(0, 0, 0, 1).mul(invProj).mul(invView);
         center4.div(center4.w);
         center = new Vec3(center4.x, center4.y, center4.z);
+    }
+
+    public static Matrix4f getScaledProjection(GuiGraphics graphics) {
+        int w = graphics.guiWidth();
+        int h = graphics.guiHeight();
+        return new Matrix4f().setOrtho(0, w, h, 0, -1000, 1000);
+    }
+
+    public static Matrix4f getUnscaledProjection() {
+        var window = Minecraft.getInstance().getWindow();
+        int w = window.getWidth();
+        int h = window.getHeight();
+        return new Matrix4f().setOrtho(0, w, h, 0, -1000, 1000);
     }
 }

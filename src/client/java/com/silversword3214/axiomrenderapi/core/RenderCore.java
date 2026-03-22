@@ -31,9 +31,13 @@ public class RenderCore {
     private final ByteBufferBuilder allocator = new ByteBufferBuilder(RenderType.SMALL_BUFFER_SIZE);
     private MappableRingBuffer vertexBuffer;
 
-    // Use the custom pipelines from the provider
+    // 3D
     private RenderPipeline linePipeline = RenderPipelines.WORLD_COLORED_LINES;
     private RenderPipeline quadPipeline = RenderPipelines.WORLD_COLORED;
+
+    // 2D
+    private RenderPipeline uiColoredPipeline = RenderPipelines.UI_COLORED;
+    private RenderPipeline uiColoredLinesPipeline = RenderPipelines.UI_COLORED_LINES;
 
     private Matrix4f currentProjectionMatrix;
     private Matrix4f currentModelViewMatrix;
@@ -47,7 +51,10 @@ public class RenderCore {
         batches.clear();
         this.currentProjectionMatrix = projection;
         this.currentModelViewMatrix = modelView;
+
     }
+
+
 
     public void flush() {
         for (Map.Entry<RenderPipeline, Batch> entry : batches.entrySet()) {
@@ -58,6 +65,7 @@ public class RenderCore {
         batches.clear();
     }
 
+    // The core of the rendering
     private void drawBatch(RenderPipeline pipeline, Batch batch) {
         if (pipeline == null) {
             LOGGER.error("Pipeline is null");
@@ -142,14 +150,14 @@ public class RenderCore {
         if (batch.vertexCount() == 0) return null;
         BufferBuilder builder = new BufferBuilder(allocator, batch.getMode(), batch.getFormat());
         for (float[] v : batch.getVertices()) {
-            // For POS3_COLOR format: v[0..2] = position, v[3..6] = color
+            // v[0]=x, v[1]=y, v[2]=z, v[3]=r, v[4]=g, v[5]=b, v[6]=a
             builder.addVertex(v[0], v[1], v[2])
                     .setColor(v[3], v[4], v[5], v[6]);
         }
         return builder.buildOrThrow();
     }
 
-    // --- Drawing methods using custom pipeline and format ---
+    //  - - -  3D drawing methods  - - -
 
     public void addLine3D(double x1, double y1, double z1, double x2, double y2, double z2, float thickness, int color) {
         if (linePipeline == null) return;
@@ -186,6 +194,247 @@ public class RenderCore {
         batch.vertex((float)x1, (float)y1, (float)z1, r, g, b, a);
         batch.vertex((float)x3, (float)y3, (float)z3, r, g, b, a);
         batch.vertex((float)x4, (float)y4, (float)z4, r, g, b, a);
+    }
+
+    // - - -  2D drawing methods  - - -
+
+    // Rect drawing
+    public void addRect2D(float x, float y, float width, float height, int color) {
+        if (uiColoredPipeline == null) return;
+        Batch batch = batches.computeIfAbsent(uiColoredPipeline,
+                k -> new Batch(AxiomVertexFormats.POS2_COLOR, VertexFormat.Mode.TRIANGLES));
+
+        float r = ((color >> 16) & 0xFF) / 255f;
+        float g = ((color >> 8) & 0xFF) / 255f;
+        float b = (color & 0xFF) / 255f;
+        float a = ((color >> 24) & 0xFF) / 255f;
+
+        // two triangles to make rect
+        float x2 = x + width;
+        float y2 = y + height;
+        // tri 1
+        batch.vertex2D(x, y, r, g, b, a);
+        batch.vertex2D(x2, y, r, g, b, a);
+        batch.vertex2D(x, y2, r, g, b, a);
+        // tri 2
+        batch.vertex2D(x, y2, r, g, b, a);
+        batch.vertex2D(x2, y, r, g, b, a);
+        batch.vertex2D(x2, y2, r, g, b, a);
+    }
+
+    // Rect outline
+    public void addRectOutline2D(float x, float y, float width, float height, float thickness, int color) {
+        if (uiColoredLinesPipeline == null) return;
+        Batch batch = batches.computeIfAbsent(uiColoredLinesPipeline,
+                k -> new Batch(AxiomVertexFormats.POS2_COLOR, VertexFormat.Mode.DEBUG_LINES));
+
+        float r = ((color >> 16) & 0xFF) / 255f;
+        float g = ((color >> 8) & 0xFF) / 255f;
+        float b = (color & 0xFF) / 255f;
+        float a = ((color >> 24) & 0xFF) / 255f;
+
+        float x2 = x + width;
+        float y2 = y + height;
+
+        // bottom
+        batch.vertex2D(x, y, r, g, b, a);
+        batch.vertex2D(x2, y, r, g, b, a);
+        // top
+        batch.vertex2D(x, y2, r, g, b, a);
+        batch.vertex2D(x2, y2, r, g, b, a);
+        // left side
+        batch.vertex2D(x, y, r, g, b, a);
+        batch.vertex2D(x, y2, r, g, b, a);
+        // right side
+        batch.vertex2D(x2, y, r, g, b, a);
+        batch.vertex2D(x2, y2, r, g, b, a);
+    }
+
+    // Simple line
+    public void addLine2D(float x1, float y1, float x2, float y2, float thickness, int color) {
+        if (uiColoredLinesPipeline == null) return;
+        Batch batch = batches.computeIfAbsent(uiColoredLinesPipeline,
+                k -> new Batch(AxiomVertexFormats.POS2_COLOR, VertexFormat.Mode.DEBUG_LINES));
+
+        float r = ((color >> 16) & 0xFF) / 255f;
+        float g = ((color >> 8) & 0xFF) / 255f;
+        float b = (color & 0xFF) / 255f;
+        float a = ((color >> 24) & 0xFF) / 255f;
+
+        batch.vertex2D(x1, y1, r, g, b, a);
+        batch.vertex2D(x2, y2, r, g, b, a);
+    }
+
+    // Rounded rect
+    public void addRoundedRect(float x, float y, float w, float h, float radius, int color, int segmentsPerCorner) {
+        if (uiColoredPipeline == null) return;
+
+        radius = Math.min(radius, Math.min(w, h) / 2);
+        if (radius <= 0) {
+            // Tavallinen suorakulmio
+            addRect2D(x, y, w, h, color);
+            return;
+        }
+
+        Batch batch = batches.computeIfAbsent(uiColoredPipeline,
+                k -> new Batch(AxiomVertexFormats.POS2_COLOR, VertexFormat.Mode.TRIANGLES));
+
+        float r = ((color >> 16) & 0xFF) / 255f;
+        float g = ((color >> 8) & 0xFF) / 255f;
+        float b = (color & 0xFF) / 255f;
+        float a = ((color >> 24) & 0xFF) / 255f;
+
+        float left = x;
+        float right = x + w;
+        float top = y;
+        float bottom = y + h;
+        float rad = radius;
+
+        if (rad * 2 < w) {
+            addRect2D(left + rad, top, w - rad * 2, h, color);
+        }
+        if (rad * 2 < h) {
+            addRect2D(left, top + rad, w, h - rad * 2, color);
+        }
+
+        // (left+rad, top+rad)
+        drawQuarterCircle(batch, left + rad, top + rad, rad, 0, r, g, b, a, segmentsPerCorner);
+        // (right-rad, top+rad)
+        drawQuarterCircle(batch, right - rad, top + rad, rad, 1, r, g, b, a, segmentsPerCorner);
+        // (right-rad, bottom-rad)
+        drawQuarterCircle(batch, right - rad, bottom - rad, rad, 2, r, g, b, a, segmentsPerCorner);
+        // (left+rad, bottom-rad)
+        drawQuarterCircle(batch, left + rad, bottom - rad, rad, 3, r, g, b, a, segmentsPerCorner);
+    }
+
+    // Quarter circle for rounded rect
+    private void drawQuarterCircle(Batch batch, float cx, float cy, float radius, int quadrant,
+                                   float r, float g, float b, float a, int segments) {
+        float startAngle = quadrant * 90f;
+        float endAngle = startAngle + 90f;
+
+        for (int i = 0; i < segments; i++) {
+            float angle1 = startAngle + (endAngle - startAngle) * i / segments;
+            float angle2 = startAngle + (endAngle - startAngle) * (i + 1) / segments;
+            float rad1 = (float) Math.toRadians(angle1);
+            float rad2 = (float) Math.toRadians(angle2);
+            float x1 = cx + (float) Math.cos(rad1) * radius;
+            float y1 = cy + (float) Math.sin(rad1) * radius;
+            float x2 = cx + (float) Math.cos(rad2) * radius;
+            float y2 = cy + (float) Math.sin(rad2) * radius;
+
+            batch.vertex2D(cx, cy, r, g, b, a);
+            batch.vertex2D(x1, y1, r, g, b, a);
+            batch.vertex2D(x2, y2, r, g, b, a);
+        }
+    }
+
+    // Rounded rect outline
+    public void addRoundedRectOutline(float x, float y, float w, float h, float radius, float thickness, int color, int segmentsPerCorner) {
+        if (uiColoredLinesPipeline == null) return;
+
+        radius = Math.min(radius, Math.min(w, h) / 2);
+        float r = ((color >> 16) & 0xFF) / 255f;
+        float g = ((color >> 8) & 0xFF) / 255f;
+        float b = (color & 0xFF) / 255f;
+        float a = ((color >> 24) & 0xFF) / 255f;
+
+        float left = x;
+        float right = x + w;
+        float top = y;
+        float bottom = y + h;
+        float rad = radius;
+
+        Batch batch = batches.computeIfAbsent(uiColoredLinesPipeline,
+                k -> new Batch(AxiomVertexFormats.POS2_COLOR, VertexFormat.Mode.DEBUG_LINES));
+
+        if (rad * 2 < h) {
+            batch.vertex2D(left, top + rad, r, g, b, a);
+            batch.vertex2D(left, bottom - rad, r, g, b, a);
+
+            batch.vertex2D(right, top + rad, r, g, b, a);
+            batch.vertex2D(right, bottom - rad, r, g, b, a);
+        }
+
+        if (rad * 2 < w) {
+            // top
+            batch.vertex2D(left + rad, top, r, g, b, a);
+            batch.vertex2D(right - rad, top, r, g, b, a);
+            // bottom
+            batch.vertex2D(left + rad, bottom, r, g, b, a);
+            batch.vertex2D(right - rad, bottom, r, g, b, a);
+        }
+
+        drawQuarterArc(batch, left + rad, top + rad, rad, 0, r, g, b, a, segmentsPerCorner);
+        drawQuarterArc(batch, right - rad, top + rad, rad, 1, r, g, b, a, segmentsPerCorner);
+        drawQuarterArc(batch, right - rad, bottom - rad, rad, 2, r, g, b, a, segmentsPerCorner);
+        drawQuarterArc(batch, left + rad, bottom - rad, rad, 3, r, g, b, a, segmentsPerCorner);
+    }
+
+    private void drawQuarterArc(Batch batch, float cx, float cy, float radius, int quadrant,
+                                float r, float g, float b, float a, int segments) {
+        float startAngle = quadrant * 90f;
+        float endAngle = startAngle + 90f;
+
+        for (int i = 0; i < segments; i++) {
+            float angle1 = startAngle + (endAngle - startAngle) * i / segments;
+            float angle2 = startAngle + (endAngle - startAngle) * (i + 1) / segments;
+            float rad1 = (float) Math.toRadians(angle1);
+            float rad2 = (float) Math.toRadians(angle2);
+            float x1 = cx + (float) Math.cos(rad1) * radius;
+            float y1 = cy + (float) Math.sin(rad1) * radius;
+            float x2 = cx + (float) Math.cos(rad2) * radius;
+            float y2 = cy + (float) Math.sin(rad2) * radius;
+            batch.vertex2D(x1, y1, r, g, b, a);
+            batch.vertex2D(x2, y2, r, g, b, a);
+        }
+    }
+
+    // Circle drawing
+    public void addCircle(float cx, float cy, float radius, int color, int segments) {
+        if (uiColoredPipeline == null) return;
+        Batch batch = batches.computeIfAbsent(uiColoredPipeline,
+                k -> new Batch(AxiomVertexFormats.POS2_COLOR, VertexFormat.Mode.TRIANGLES));
+
+        float r = ((color >> 16) & 0xFF) / 255f;
+        float g = ((color >> 8) & 0xFF) / 255f;
+        float b = (color & 0xFF) / 255f;
+        float a = ((color >> 24) & 0xFF) / 255f;
+
+        for (int i = 0; i < segments; i++) {
+            float angle1 = (float) (2 * Math.PI * i / segments);
+            float angle2 = (float) (2 * Math.PI * (i + 1) / segments);
+            float x1 = cx + (float) Math.cos(angle1) * radius;
+            float y1 = cy + (float) Math.sin(angle1) * radius;
+            float x2 = cx + (float) Math.cos(angle2) * radius;
+            float y2 = cy + (float) Math.sin(angle2) * radius;
+            batch.vertex2D(cx, cy, r, g, b, a);
+            batch.vertex2D(x1, y1, r, g, b, a);
+            batch.vertex2D(x2, y2, r, g, b, a);
+        }
+    }
+
+    // Circle outline
+    public void addCircleOutline(float cx, float cy, float radius, float thickness, int color, int segments) {
+        if (uiColoredLinesPipeline == null) return;
+        Batch batch = batches.computeIfAbsent(uiColoredLinesPipeline,
+                k -> new Batch(AxiomVertexFormats.POS2_COLOR, VertexFormat.Mode.DEBUG_LINES));
+
+        float r = ((color >> 16) & 0xFF) / 255f;
+        float g = ((color >> 8) & 0xFF) / 255f;
+        float b = (color & 0xFF) / 255f;
+        float a = ((color >> 24) & 0xFF) / 255f;
+
+        for (int i = 0; i < segments; i++) {
+            float angle1 = (float) (2 * Math.PI * i / segments);
+            float angle2 = (float) (2 * Math.PI * (i + 1) / segments);
+            float x1 = cx + (float) Math.cos(angle1) * radius;
+            float y1 = cy + (float) Math.sin(angle1) * radius;
+            float x2 = cx + (float) Math.cos(angle2) * radius;
+            float y2 = cy + (float) Math.sin(angle2) * radius;
+            batch.vertex2D(x1, y1, r, g, b, a);
+            batch.vertex2D(x2, y2, r, g, b, a);
+        }
     }
 
     public void close() {

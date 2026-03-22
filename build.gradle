@@ -11,15 +11,19 @@ base {
 }
 
 loom {
-
     accessWidenerPath = file("src/main/resources/axiomrenderapi.accessWidener")
 
     splitEnvironmentSourceSets()
+
     mods {
         "axiomrenderapi" {
             sourceSet sourceSets.main
             sourceSet sourceSets.client
         }
+    }
+
+    mixin {
+        defaultRefmapName = "axiomrenderapi.refmap.json"
     }
 }
 
@@ -38,7 +42,7 @@ processResources {
     inputs.property "version", project.version
     inputs.property "minecraft_version", project.minecraft_version
     inputs.property "loader_version", project.loader_version
-    filteringCharset "UTF-8"
+    filteringCharset = "UTF-8"   // fixed assignment
 
     filesMatching("fabric.mod.json") {
         expand "version": project.version,
@@ -67,26 +71,27 @@ jar {
     from("LICENSE") {
         rename { "${it}_${project.archives_base_name}" }
     }
+    exclude 'com/silversword3214/axiomrenderapi/test/**'
 }
 
-
-
-
 publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-            // Include sources JAR
-            artifact sourcesJar
-            // Include mod metadata (if needed)
-            // artifact remapJar   // already included
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                artifact(tasks.remapJar)   // 🔥 tärkeä
+                artifact(tasks.sourcesJar)
+
+            }
+
         }
+
     }
+
     repositories {
-        // Choose your repository (examples below)
         maven {
-            name = "local"   // local file repository
-            url = "file://${project.projectDir}/repo"
+            name = "local"
+            url = "file:///${project.projectDir}/repo".replace('\\', '/')
         }
+
     }
 }

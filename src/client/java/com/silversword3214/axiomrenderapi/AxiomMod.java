@@ -1,5 +1,6 @@
 package com.silversword3214.axiomrenderapi;
 
+import com.silversword3214.axiomrenderapi.api.Renderer2D;
 import com.silversword3214.axiomrenderapi.event.Render3DEvent;
 import com.silversword3214.axiomrenderapi.event.RenderEventDispatcher;
 import com.silversword3214.axiomrenderapi.integration.FabricHudHook;
@@ -63,6 +64,25 @@ public class AxiomMod implements ClientModInitializer {
                 Tracers.getInstance().setEnabled(!Tracers.getInstance().isEnabled());
                 System.out.println("Tracers toggled to: " + Tracers.getInstance().isEnabled());
             }
+        });
+
+
+        // AxiomMod.java, onInitializeClient-metodissa
+
+        RenderEventDispatcher.addRenderHUDListener(event -> {
+            Renderer2D r2d = event.getRenderer();
+
+            // Pyöristetty suorakulmio (täytetty)
+            r2d.drawRoundedRect(10, 10, 100, 100, 10, 0x88FF0000);
+
+            // Pyöristetty reunus
+            r2d.drawRoundedRectOutline(10, 120, 100, 100, 10, 2, 0xFF00FF00);
+
+            // Ympyrä
+            r2d.drawCircle(200, 60, 40, 0x880000FF);
+
+            // Ympyrän reunus
+            r2d.drawCircleOutline(200, 60, 40, 2, 0xFFFFFF00);
         });
     }
 }
