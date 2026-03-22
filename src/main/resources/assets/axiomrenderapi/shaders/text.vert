@@ -1,21 +1,21 @@
 #version 330 core
 
-layout(location = 0) in vec2 aPos;   // 2D position
-layout(location = 1) in vec2 aUV;    // UV coordinates
-layout(location = 2) in vec4 aColor; // RGBA color
+layout(location = 0) in vec3 Position;
+layout(location = 1) in vec2 UV;
+layout(location = 2) in vec4 Color;
 
-layout(std140) uniform DynamicTransforms {
-    mat4 ModelViewProjectionMatrix;
-    vec4 ColorModulator;
-    vec3 ModelOffset;
-    mat4 TextureMatrix;
+uniform DynamicTransforms {
+    mat4 MVP;
+    vec4 Tint;
+    vec3 LightDir0;
+    mat4 Model;
 };
 
-out vec2 v_UV;
-out vec4 v_Color;
+out vec2 texCoord;
+out vec4 vertexColor;
 
 void main() {
-    gl_Position = ModelViewProjectionMatrix * vec4(aPos.x, aPos.y, 0.0, 1.0);
-    v_UV = (TextureMatrix * vec4(aUV, 0.0, 1.0)).xy;
-    v_Color = aColor * ColorModulator;
+    texCoord = UV;
+    vertexColor = Color;
+    gl_Position = MVP * vec4(Position, 1.0);
 }

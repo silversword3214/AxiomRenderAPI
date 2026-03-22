@@ -28,7 +28,8 @@ loom {
 }
 
 repositories {
-    // Add any custom repositories here
+    maven { url 'https://jitpack.io' }
+
 }
 
 dependencies {
@@ -75,23 +76,11 @@ jar {
 }
 
 publishing {
-    publishing {
-        publications {
-            mavenJava(MavenPublication) {
-                artifact(tasks.remapJar)   // 🔥 tärkeä
-                artifact(tasks.sourcesJar)
-
-            }
-
+    publications {
+        mavenJava(MavenPublication) {
+            artifact(tasks.remapJar)
+            artifact(tasks.sourcesJar)
         }
-
     }
-
-    repositories {
-        maven {
-            name = "local"
-            url = "file:///${project.projectDir}/repo".replace('\\', '/')
-        }
-
-    }
+    // repositories-osa poistetaan tai kommentoidaan
 }
