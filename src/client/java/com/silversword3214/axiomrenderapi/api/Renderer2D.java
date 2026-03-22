@@ -1,16 +1,8 @@
 package com.silversword3214.axiomrenderapi.api;
 
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
-import com.mojang.blaze3d.vertex.MeshData;
-import com.mojang.blaze3d.vertex.VertexFormat;
-import com.silversword3214.axiomrenderapi.core.AxiomVertexFormats;
 import com.silversword3214.axiomrenderapi.core.RenderCore;
-import com.silversword3214.axiomrenderapi.core.MatrixUtil;
-import com.silversword3214.axiomrenderapi.core.RenderPipelines;
-import com.silversword3214.axiomrenderapi.utils.RenderUtils;
 import net.minecraft.client.gui.GuiGraphics;
-import org.joml.Matrix3x2fStack;
+import net.minecraft.resources.Identifier;
 import org.joml.Matrix4f;
 
 public class Renderer2D {
@@ -18,22 +10,14 @@ public class Renderer2D {
     private final RenderCore core;
     private final Matrix4f projection;
 
-    // Renderer2D.java
-    // Renderer2D.java
-    public Renderer2D(GuiGraphics graphics, RenderCore core, boolean useScaledCoordinates) {
+    public Renderer2D(GuiGraphics graphics, RenderCore core, Matrix4f projection) {
         this.graphics = graphics;
         this.core = core;
-        Matrix4f proj = useScaledCoordinates
-                ? RenderUtils.getScaledProjection(graphics)
-                : RenderUtils.getUnscaledProjection();
-        this.projection = proj;
+        this.projection = projection;
         this.core.beginFrame(this.projection, new Matrix4f().identity());
     }
 
-    // Voit myös säilyttää vanhan konstruktorin, joka käyttää skaalattuja koordinaatteja
-    public Renderer2D(GuiGraphics graphics, RenderCore core) {
-        this(graphics, core, true);
-    }
+    // --- Basic shapes ---
 
     public void drawRect(float x, float y, float width, float height, int color) {
         core.addRect2D(x, y, width, height, color);
@@ -47,4 +31,46 @@ public class Renderer2D {
         core.addLine2D(x1, y1, x2, y2, thickness, color);
     }
 
+    // --- Advanced shapes ---
+
+    public void drawCircle(double cx, double cy, double radius, int color) {
+        core.addCircle((float) cx, (float) cy, (float) radius, color);
+    }
+
+    public void drawCircleOutline(double cx, double cy, double radius, int color, double thickness) {
+        core.addCircleOutline((float) cx, (float) cy, (float) radius, (float) thickness, color);
+    }
+
+    public void drawRoundedRect(double x, double y, double w, double h, double radius, int color) {
+        core.addRoundedRect((float) x, (float) y, (float) w, (float) h, (float) radius, color);
+    }
+
+    public void drawRoundedRectCustom(double x, double y, double w, double h, double radius, int color,
+                                      boolean topLeft, boolean topRight, boolean bottomRight, boolean bottomLeft) {
+        core.addRoundedRectCustom((float) x, (float) y, (float) w, (float) h, (float) radius, color,
+                topLeft, topRight, bottomRight, bottomLeft);
+    }
+
+    public void drawRoundedRectOutline(double x, double y, double w, double h, double radius, int color, double thickness) {
+        core.addRoundedRectOutline((float) x, (float) y, (float) w, (float) h, (float) radius, (float) thickness, color);
+    }
+
+    // Renderer2D.java
+    public void drawTexture(Identifier texture, float x, float y, float width, float height) {
+        drawTexture(texture, x, y, width, height, 0xFFFFFFFF);
+    }
+
+    public void drawTexture(Identifier texture, float x, float y, float width, float height, int color) {
+        core.addTexture(texture, x, y, width, height, color);
+    }
+
+    public void drawTexturePart(Identifier texture, float x, float y, float width, float height,
+                                float u1, float v1, float u2, float v2) {
+        drawTexturePart(texture, x, y, width, height, u1, v1, u2, v2, 0xFFFFFFFF);
+    }
+
+    public void drawTexturePart(Identifier texture, float x, float y, float width, float height,
+                                float u1, float v1, float u2, float v2, int color) {
+        core.addTexturePart(texture, x, y, width, height, u1, v1, u2, v2, color);
+    }
 }

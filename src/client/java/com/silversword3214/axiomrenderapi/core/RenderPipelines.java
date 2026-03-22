@@ -198,34 +198,5 @@ public final class RenderPipelines {
         }
     }
 
-    public static void precompile() {
-        GpuDevice device = RenderSystem.getDevice();
-        ResourceManager resources = Minecraft.getInstance().getResourceManager();
 
-        RenderPipeline[] pipelines = {
-                WORLD_COLORED, WORLD_COLORED_LINES, WORLD_COLORED_DEPTH, WORLD_COLORED_LINES_DEPTH,
-                UI_COLORED, UI_COLORED_LINES, UI_TEXTURED, UI_TEXT
-        };
-
-        for (RenderPipeline pipeline : pipelines) {
-            if (pipeline == null) continue;
-            device.precompilePipeline(pipeline, (identifier, shaderType) -> {
-                String cached = SHADER_SOURCE_CACHE.get(identifier);
-                if (cached != null) return cached;
-                var optional = resources.getResource(identifier);
-                if (optional.isEmpty()) {
-                    LOGGER.error("Missing shader: {}", identifier);
-                    return null;
-                }
-                try (InputStream in = optional.get().open()) {
-                    String source = IOUtils.toString(in, StandardCharsets.UTF_8);
-                    SHADER_SOURCE_CACHE.put(identifier, source);
-                    return source;
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-            LOGGER.info("Precompiling: {}", pipeline.getLocation());
-        }
-    }
 }

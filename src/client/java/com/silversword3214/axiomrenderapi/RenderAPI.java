@@ -25,8 +25,15 @@ public class RenderAPI {
         return INSTANCE;
     }
 
-    public void beginHUD(GuiGraphics graphics, float tickDelta) {
-        renderer2D = new Renderer2D(graphics, core);
+
+
+    // RenderAPI.java - lisää metodi aloittamaan HUD pikselikoordinaateilla
+    public void beginHUDUnscaled(GuiGraphics graphics, float tickDelta) {
+        var window = Minecraft.getInstance().getWindow();
+        int width = window.getWidth();
+        int height = window.getHeight();
+        Matrix4f proj = new Matrix4f().setOrtho(0, width, height, 0, -1000, 1000);
+        renderer2D = new Renderer2D(graphics, core, proj);
     }
 
     public Renderer3D beginWorld(WorldRenderContext context) {

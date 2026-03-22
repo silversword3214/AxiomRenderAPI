@@ -14,7 +14,7 @@ public class FabricHudHook {
         HudRenderCallback.EVENT.register((GuiGraphics graphics, DeltaTracker deltaTracker) -> {
             RenderAPI api = RenderAPI.getInstance();
             float tickDelta = deltaTracker.getGameTimeDeltaPartialTick(true);
-            api.beginHUD(graphics, tickDelta);
+            api.beginHUDUnscaled(graphics, tickDelta);
             Renderer2D renderer = api.hud();
             RenderHUDEvent event = new RenderHUDEvent(renderer, tickDelta, graphics);
             RenderEventDispatcher.dispatchRenderHUD(event);
