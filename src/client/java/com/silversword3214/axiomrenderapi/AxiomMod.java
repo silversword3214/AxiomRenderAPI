@@ -12,6 +12,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import org.lwjgl.glfw.GLFW;
 
 public class AxiomMod implements ClientModInitializer {
@@ -65,24 +66,35 @@ public class AxiomMod implements ClientModInitializer {
                 System.out.println("Tracers toggled to: " + Tracers.getInstance().isEnabled());
             }
         });
-
-
         // AxiomMod.java, onInitializeClient-metodissa
 
         RenderEventDispatcher.addRenderHUDListener(event -> {
             Renderer2D r2d = event.getRenderer();
 
-            // Pyöristetty suorakulmio (täytetty)
-            r2d.drawRoundedRect(10, 10, 100, 100, 10, 0x88FF0000);
 
-            // Pyöristetty reunus
-            r2d.drawRoundedRectOutline(10, 120, 100, 100, 10, 2, 0xFF00FF00);
+            // 1. Perusneliö (punainen täytetty)
+            r2d.drawRect(10, 10, 100, 100, 0xFFFF0000);
 
-            // Ympyrä
-            r2d.drawCircle(200, 60, 40, 0x880000FF);
+            // 2. Neliön reunus (sininen, paksuus 2)
+            r2d.drawRectOutline(10, 120, 100, 100, 2, 0xFF0000FF);
 
-            // Ympyrän reunus
-            r2d.drawCircleOutline(200, 60, 40, 2, 0xFFFFFF00);
+            // 3. Viiva (vihreä)
+            r2d.drawLine(10, 230, 110, 330, 2, 0xFF00FF00);
+
+            // 4. Ympyrä (täytetty, läpikuultava punainen)
+            r2d.drawCircle(200, 60, 40, 0x88FF0000);
+
+            // 5. Ympyrän ääriviiva (vihreä, paksuus 2)
+            r2d.drawCircleOutline(200, 60, 40, 0xFF00FF00, 2);
+
+            // 6. Pyöristetty suorakulmio (sininen täytetty)
+            r2d.drawRoundedRect(10, 150, 100, 80, 15, 0xFF0000FF);
+
+            // 7. Pyöristetyn suorakulmion ääriviiva (keltainen, paksuus 2)
+            r2d.drawRoundedRectOutline(10, 150, 100, 80, 15, 0xFFFFFF00, 2);
+
+            // 8. Pyöristetty suorakulmio custom-kulmilla (vain vasen ylä- ja oikea alakulma)
+            r2d.drawRoundedRectCustom(120, 150, 100, 80, 15, 0x88FF00FF, true, false, true, false);
         });
     }
 }

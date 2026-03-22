@@ -2,6 +2,7 @@ package com.silversword3214.axiomrenderapi.core;
 
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import com.mojang.blaze3d.buffers.GpuFence;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.RenderPass;
@@ -9,9 +10,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuSampler;
 import com.mojang.blaze3d.textures.GpuTextureView;
 import com.mojang.blaze3d.vertex.*;
-import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MappableRingBuffer;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.resources.Identifier;
 import org.joml.Matrix4f;
@@ -29,19 +28,13 @@ import java.util.OptionalInt;
 public class RenderCore {
     private static final Logger LOGGER = LoggerFactory.getLogger(RenderCore.class);
     private final Map<RenderPipeline, Batch> batches = new HashMap<>();
-
+    private final Map<RenderPipeline, VertexBufferManager> bufferManagers = new HashMap<>();
     private final ByteBufferBuilder allocator = new ByteBufferBuilder(RenderType.SMALL_BUFFER_SIZE);
-    private MappableRingBuffer vertexBuffer;
 
-    // 3D pipelines
     private RenderPipeline linePipeline = RenderPipelines.WORLD_COLORED_LINES;
     private RenderPipeline quadPipeline = RenderPipelines.WORLD_COLORED;
-
-    // 2D pipelines
     private RenderPipeline uiColoredPipeline = RenderPipelines.UI_COLORED;
     private RenderPipeline uiColoredLinesPipeline = RenderPipelines.UI_COLORED_LINES;
-
-    // Textured pipelines
     private RenderPipeline uiTexturedPipeline = RenderPipelines.UI_TEXTURED;
 
     private Matrix4f currentProjectionMatrix;
@@ -59,11 +52,14 @@ public class RenderCore {
 
     public void flush() {
         for (Map.Entry<RenderPipeline, Batch> entry : batches.entrySet()) {
-            RenderPipeline pipeline = entry.getKey();
-            Batch batch = entry.getValue();
-            drawBatch(pipeline, batch);
+            drawBatch(entry.getKey(), entry.getValue());
+            entry.getValue().clear();
         }
         batches.clear();
+    }
+
+    private VertexBufferManager getBufferManager(RenderPipeline pipeline) {
+        return bufferManagers.computeIfAbsent(pipeline, k -> new VertexBufferManager());
     }
 
     private void drawBatch(RenderPipeline pipeline, Batch batch) {
@@ -82,24 +78,12 @@ public class RenderCore {
         VertexFormat format = drawParams.format();
         int vertexBufferSize = drawParams.vertexCount() * format.getVertexSize();
 
-        if (vertexBuffer == null || vertexBuffer.size() < vertexBufferSize) {
-            if (vertexBuffer != null) vertexBuffer.close();
-            vertexBuffer = new MappableRingBuffer(
-                    () -> "axiomrenderapi_vertex_buffer",
-                    GpuBuffer.USAGE_VERTEX | GpuBuffer.USAGE_MAP_WRITE,
-                    vertexBufferSize
-            );
-        }
+        VertexBufferManager vbm = getBufferManager(pipeline);
+        vbm.ensureCapacity(vertexBufferSize);
 
         CommandEncoder encoder = RenderSystem.getDevice().createCommandEncoder();
-        try (GpuBuffer.MappedView mapped = encoder.mapBuffer(vertexBuffer.currentBuffer().slice(0, mesh.vertexBuffer().remaining()), false, true)) {
-            MemoryUtil.memCopy(mesh.vertexBuffer(), mapped.data());
-        } catch (Exception e) {
-            LOGGER.error("Failed to upload vertex data", e);
-            mesh.close();
-            return;
-        }
-        GpuBuffer vertices = vertexBuffer.currentBuffer();
+        vbm.upload(mesh.vertexBuffer(), vertexBufferSize, encoder);
+        GpuBuffer vertices = vbm.getCurrentBuffer();
 
         GpuBuffer indices;
         VertexFormat.IndexType indexType;
@@ -121,7 +105,6 @@ public class RenderCore {
                 new Matrix4f()
         );
 
-        // --- TÄRKEÄ: Lataa tekstuuri ENNEN render passia ---
         GpuTextureView textureView = null;
         GpuSampler sampler = null;
         if (batch.getTexture() != null) {
@@ -135,14 +118,12 @@ public class RenderCore {
             }
         }
 
-        try (RenderPass renderPass = RenderSystem.getDevice()
-                .createCommandEncoder()
-                .createRenderPass(
-                        () -> "axiomrenderapi_draw",
-                        Minecraft.getInstance().getMainRenderTarget().getColorTextureView(),
-                        OptionalInt.empty(),
-                        Minecraft.getInstance().getMainRenderTarget().getDepthTextureView(),
-                        OptionalDouble.empty())) {
+        try (RenderPass renderPass = encoder.createRenderPass(
+                () -> "axiomrenderapi_draw",
+                Minecraft.getInstance().getMainRenderTarget().getColorTextureView(),
+                OptionalInt.empty(),
+                Minecraft.getInstance().getMainRenderTarget().getDepthTextureView(),
+                OptionalDouble.empty())) {
 
             if (textureView != null) {
                 renderPass.bindTexture("u_Texture", textureView, sampler);
@@ -159,25 +140,29 @@ public class RenderCore {
         }
 
         mesh.close();
-        vertexBuffer.rotate();
+
+        // Luo fence ja aseta se managerille
+        GpuFence fence = encoder.createFence();
+        vbm.setFence(fence);
+        vbm.rotate();
     }
 
-    // RenderCore.java - buildMeshFromBatch-metodin korjaus
     private MeshData buildMeshFromBatch(Batch batch) {
         if (batch.vertexCount() == 0) return null;
         BufferBuilder builder = new BufferBuilder(allocator, batch.getMode(), batch.getFormat());
         for (float[] v : batch.getVertices()) {
-            if (v.length == 9) { // POS2_UV_COLOR: x, y, z, u, v, r, g, b, a
+            if (v.length == 9) { // POS2_UV_COLOR
                 builder.addVertex(v[0], v[1], v[2])
                         .setUv(v[3], v[4])
                         .setColor(v[5], v[6], v[7], v[8]);
-            } else { // POS3_COLOR and POS2_COLOR: x, y, z, r, g, b, a
+            } else { // POS3_COLOR, POS2_COLOR
                 builder.addVertex(v[0], v[1], v[2])
                         .setColor(v[3], v[4], v[5], v[6]);
             }
         }
         return builder.buildOrThrow();
     }
+
 
     // --- 3D drawing methods (existing) ---
 
@@ -695,6 +680,9 @@ public class RenderCore {
 
     public void close() {
         if (allocator != null) allocator.close();
-        if (vertexBuffer != null) vertexBuffer.close();
+        for (VertexBufferManager vbm : bufferManagers.values()) {
+            vbm.close();
+        }
+        bufferManagers.clear();
     }
 }

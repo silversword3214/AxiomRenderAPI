@@ -41,4 +41,10 @@ public class Batch {
         }
         vertices.add(new float[]{x, y, 0f, u, v, r, g, b, a});
     }
+
+    /** Tyhjentää tämän erän, jotta se voidaan käyttää uudelleen seuraavalla framella. */
+    public void clear() {
+        vertices.clear();
+        texture = null;
+    }
 }

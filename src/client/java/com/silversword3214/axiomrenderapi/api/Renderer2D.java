@@ -55,7 +55,7 @@ public class Renderer2D {
         core.addRoundedRectOutline((float) x, (float) y, (float) w, (float) h, (float) radius, (float) thickness, color);
     }
 
-    // Renderer2D.java
+    // Texture drawing
     public void drawTexture(Identifier texture, float x, float y, float width, float height) {
         drawTexture(texture, x, y, width, height, 0xFFFFFFFF);
     }
